@@ -130,6 +130,11 @@
       for (let bin of bins) {
         try {
           let res = await fetch(`${API_URL}/?action=getCount&vpin=${bin.vpin}`);
+    
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+    
           let data = await res.text();
           document.getElementById(`count${bin.id}`).innerText = data || "0";
         } catch (err) {
@@ -138,6 +143,7 @@
         }
       }
     }
+    
 
     async function resetCounter(vpin) {
       const entered = prompt("Enter admin password:");
@@ -184,3 +190,4 @@
   </script>
 </body>
 </html>
+
