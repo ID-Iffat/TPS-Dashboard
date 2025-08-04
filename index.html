@@ -1,81 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>RVM Dashboard</title>
+  <meta charset="UTF-8" />
+  <title>Dashboard TPS IoT</title>
   <style>
     body { font-family: Arial; background: #1e1e2f; color: white; text-align: center; }
-    .container { display: flex; flex-wrap: wrap; justify-content: center; }
-    .card { background: #2a2a40; padding: 20px; border-radius: 10px; margin: 15px; width: 250px; }
+    .card { background: #2a2a40; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 20px; }
     .count { font-size: 60px; font-weight: bold; margin: 20px 0; }
-    button { background: #ff4d4d; border: none; padding: 10px 20px; font-size: 18px; color: white; cursor: pointer; border-radius: 5px; }
+    button {
+      background: #ff4d4d; border: none; padding: 10px 20px; font-size: 18px;
+      color: white; cursor: pointer; border-radius: 5px; margin: 5px;
+    }
     button:hover { background: #ff1a1a; }
+    table {
+      margin: 20px auto; border-collapse: collapse; background: #2a2a40; color: white;
+      width: 80%; max-width: 600px;
+    }
+    th, td {
+      border: 1px solid #444; padding: 10px;
+    }
+    th { background: #3a3a58; }
   </style>
 </head>
 <body>
-  <h1>TPS Bottle Counter Dashboard</h1>
-  <div class="container" id="dashboard"></div>
+  <div class="card">
+    <h1>TPS Bottle Counter</h1>
+    <p>Bottle Count (TPS 1):</p>
+    <div class="count" id="bottleCount">--</div>
+    <button onclick="resetCounter()">Reset Counter</button>
+  </div>
+
+  <div style="margin-top: 40px;">
+    <h2>History</h2>
+    <div>
+      <button onclick="showHistory('Jumlah Sampah TPS 1')">History TPS 1</button>
+      <button onclick="showHistory('Jumlah Sampah TPS 2')">History TPS 2</button>
+      <button onclick="showHistory('Jumlah Sampah TPS 3')">History TPS 3</button>
+      <button onclick="showHistory('Jumlah Sampah TPS 4')">History TPS 4</button>
+      <button onclick="showHistory('Jumlah Sampah TPS 5')">History TPS 5</button>
+    </div>
+
+    <div id="history" style="margin-top: 20px;">Select a bin history to view</div>
+  </div>
 
   <script>
     const API_URL = "https://tps-1.iffatadibamusaffa.workers.dev/";
-    const bins = [
-      { id: 1, name: "TPS 1" },
-      { id: 2, name: "TPS 2" },
-      { id: 3, name: "TPS 3" },
-      { id: 4, name: "TPS 4" },
-      { id: 5, name: "TPS 5" }
-    ];
+    const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwQgdrKZGYozrcXNJTbIKTJ1gufmGuBfIrUFr9RskqKdi-Z5Isv-8eDW_6x6tlN2PNT/exec";
 
-    function createCard(bin) {
-      return `
-        <div class="card">
-          <h2>${bin.name}</h2>
-          <p>Bottle Count:</p>
-          <div class="count" id="count-${bin.id}">--</div>
-          <button onclick="resetCounter(${bin.id})">Reset Counter</button>
-        </div>
-      `;
-    }
-
-    document.getElementById("dashboard").innerHTML = bins.map(createCard).join("");
-
-    async function fetchCount(binId) {
+    // Fetch and update bottle count for TPS 1 (V1)
+    async function fetchCount() {
       try {
-        let res = await fetch(`${API_URL}/?action=getCount&bin=${binId}`);
+        let res = await fetch(`${API_URL}/?action=getCount`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         let data = await res.text();
-        document.getElementById(`count-${binId}`).innerText = data || "0";
+        document.getElementById("bottleCount").innerText = data || "0";
       } catch (err) {
-        console.error(`Fetch count error for bin ${binId}:`, err);
-        document.getElementById(`count-${binId}`).innerText = "Error";
+        console.error("Fetch count error:", err);
+        document.getElementById("bottleCount").innerText = "Error";
       }
     }
 
-    async function resetCounter(binId) {
+    // Reset bottle count for TPS 1
+    async function resetCounter() {
       const entered = prompt("Enter admin password:");
       if (!entered) return;
       try {
-        let res = await fetch(`${API_URL}/?action=resetCount&bin=${binId}&key=${encodeURIComponent(entered)}`);
+        let res = await fetch(`${API_URL}/?action=resetCount&key=${encodeURIComponent(entered)}`);
         if (res.status === 401) {
           alert("Wrong password!");
         } else if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         } else {
-          alert(`Counter for Bin ${binId} reset!`);
-          fetchCount(binId);
+          alert("Counter reset!");
+          fetchCount();
         }
       } catch (err) {
-        console.error(`Reset error for bin ${binId}:`, err);
+        console.error("Reset error:", err);
       }
     }
 
-    function updateAllCounts() {
-      bins.forEach(b => fetchCount(b.id));
+    // Fetch all history data once (cache it)
+    let cachedHistory = null;
+    async function fetchFullHistory() {
+      if (cachedHistory) return cachedHistory;
+      try {
+        const res = await fetch(SHEET_API_URL);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        cachedHistory = await res.json();
+        return cachedHistory;
+      } catch (err) {
+        console.error("Failed to fetch history:", err);
+        return null;
+      }
     }
 
-    setInterval(updateAllCounts, 2000);
-    updateAllCounts();
+    // Show history table filtered by selected bin
+    async function showHistory(binColumn) {
+      const data = await fetchFullHistory();
+      if (!data) {
+        document.getElementById("history").innerText = "Failed to load history";
+        return;
+      }
+
+      let html = `<table><tr><th>Tanggal</th><th>${binColumn}</th></tr>`;
+
+      data.forEach(row => {
+        html += `<tr><td>${row["Tanggal"] || ""}</td><td>${row[binColumn] || 0}</td></tr>`;
+      });
+
+      html += "</table>";
+
+      document.getElementById("history").innerHTML = html;
+    }
+
+    // Update the count every 2 seconds
+    setInterval(fetchCount, 2000);
+    fetchCount();
   </script>
 </body>
 </html>
-
