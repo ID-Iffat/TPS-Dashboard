@@ -5,56 +5,76 @@
   <title>RVM Dashboard</title>
   <style>
     body { font-family: Arial; background: #1e1e2f; color: white; text-align: center; }
-    .card { background: #2a2a40; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 50px; }
+    .container { display: flex; flex-wrap: wrap; justify-content: center; }
+    .card { background: #2a2a40; padding: 20px; border-radius: 10px; margin: 15px; width: 250px; }
     .count { font-size: 60px; font-weight: bold; margin: 20px 0; }
     button { background: #ff4d4d; border: none; padding: 10px 20px; font-size: 18px; color: white; cursor: pointer; border-radius: 5px; }
     button:hover { background: #ff1a1a; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>TPS Bottle Counter</h1>
-    <p>Bottle Count:</p>
-    <div class="count" id="bottleCount">--</div>
-    <button onclick="resetCounter()">Reset Counter</button>
-  </div>
+  <h1>TPS Bottle Counter Dashboard</h1>
+  <div class="container" id="dashboard"></div>
 
   <script>
     const API_URL = "https://tps-1.iffatadibamusaffa.workers.dev/";
+    const bins = [
+      { id: 1, name: "Bin 1" },
+      { id: 2, name: "Bin 2" },
+      { id: 3, name: "Bin 3" },
+      { id: 4, name: "Bin 4" },
+      { id: 5, name: "Bin 5" }
+    ];
 
-    async function fetchCount() {
+    function createCard(bin) {
+      return `
+        <div class="card">
+          <h2>${bin.name}</h2>
+          <p>Bottle Count:</p>
+          <div class="count" id="count-${bin.id}">--</div>
+          <button onclick="resetCounter(${bin.id})">Reset Counter</button>
+        </div>
+      `;
+    }
+
+    document.getElementById("dashboard").innerHTML = bins.map(createCard).join("");
+
+    async function fetchCount(binId) {
       try {
-        let res = await fetch(`${API_URL}/?action=getCount`);
+        let res = await fetch(`${API_URL}/?action=getCount&bin=${binId}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         let data = await res.text();
-        document.getElementById("bottleCount").innerText = data || "0";
+        document.getElementById(`count-${binId}`).innerText = data || "0";
       } catch (err) {
-        console.error("Fetch count error:", err);
-        document.getElementById("bottleCount").innerText = "Error";
+        console.error(`Fetch count error for bin ${binId}:`, err);
+        document.getElementById(`count-${binId}`).innerText = "Error";
       }
     }
 
-    async function resetCounter() {
+    async function resetCounter(binId) {
       const entered = prompt("Enter admin password:");
       if (!entered) return;
       try {
-        let res = await fetch(`${API_URL}/?action=resetCount&key=${encodeURIComponent(entered)}`);
+        let res = await fetch(`${API_URL}/?action=resetCount&bin=${binId}&key=${encodeURIComponent(entered)}`);
         if (res.status === 401) {
           alert("Wrong password!");
         } else if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         } else {
-          alert("Counter reset!");
-          fetchCount();
+          alert(`Counter for Bin ${binId} reset!`);
+          fetchCount(binId);
         }
       } catch (err) {
-        console.error("Reset error:", err);
+        console.error(`Reset error for bin ${binId}:`, err);
       }
     }
 
-    setInterval(fetchCount, 2000);
-    fetchCount();
+    function updateAllCounts() {
+      bins.forEach(b => fetchCount(b.id));
+    }
+
+    setInterval(updateAllCounts, 2000);
+    updateAllCounts();
   </script>
 </body>
 </html>
-
