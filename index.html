@@ -53,26 +53,18 @@
 
   <script>
     const BLYNK_TOKEN = "u4HQfa18poV7jmcMr3HkOxdX46CIsQ6Q";
-    const API_URL = "https://blynk.cloud/external/api";
+    const API_URL = "https://your-worker-name.username.workers.dev";
 
-    async function fetchCount() {
-      try {
-        let response = await fetch(`${API_URL}/get?token=${BLYNK_TOKEN}&V1`);
-        let data = await response.text();
-        document.getElementById("bottleCount").innerText = data || "0";
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    }
+async function fetchCount() {
+  let response = await fetch(`${API_URL}/?action=getCount`);
+  let data = await response.text();
+  document.getElementById("bottleCount").innerText = data;
+}
 
-    async function resetCounter() {
-      try {
-        await fetch(`${API_URL}/update?token=${BLYNK_TOKEN}&V1=0`);
-        fetchCount(); // Refresh after reset
-      } catch (error) {
-        console.error("Error resetting counter:", error);
-      }
-    }
+async function resetCounter() {
+  await fetch(`${API_URL}/?action=resetCount`);
+  fetchCount();
+}
 
     // Refresh count every 2 seconds
     setInterval(fetchCount, 2000);
@@ -80,3 +72,4 @@
   </script>
 </body>
 </html>
+
