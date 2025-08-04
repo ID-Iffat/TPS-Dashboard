@@ -179,22 +179,32 @@
       document.getElementById("historyTitle").innerText = `TPS ${binId}`;
       const tableBody = document.getElementById("historyTable");
       tableBody.innerHTML = "";
-
+    
       try {
-        const response = await fetch(`${API_URL}/?action=getHistory&bin=${binId}`);
+        // Call Google Apps Script directly
+        const response = await fetch(`${SHEET_API}?bin=${binId}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-
-        if (data.length === 0) {
+    
+        if (!Array.isArray(data) || data.length === 0) {
           tableBody.innerHTML = `<tr><td colspan="2">No history available.</td></tr>`;
           return;
         }
-
+    
         data.forEach(row => {
-          let date = new Date(row.date);
-          let formattedDate = date.toISOString().split('T')[0];
+          // Expecting { date: "...", count: ... }
+          let formattedDate;
+          if (typeof row.date === "string") {
+            // Already in text form
+            formattedDate = row.date.includes("T") ? row.date.split("T")[0] : row.date;
+          } else {
+            // If it's a serial number from Sheets
+            let dateObj = new Date((row.date - 25569) * 86400 * 1000); 
+            formattedDate = dateObj.toISOString().split("T")[0];
+          }
+    
           let count = row.count || 0;
-
+    
           let tr = document.createElement("tr");
           tr.innerHTML = `<td>${formattedDate}</td><td>${count}</td>`;
           tableBody.appendChild(tr);
@@ -211,6 +221,7 @@
   </script>
 </body>
 </html>
+
 
 
 
