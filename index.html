@@ -1,21 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Dashboard TPS IoT</title>
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       background: #1e1e2f;
       color: white;
       text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 20px;
     }
     .container {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 20px;
-      margin-top: 30px;
+      margin: 30px auto;
+      max-width: 1200px;
+      padding: 0 10px;
     }
     .card {
       background: #2a2a40;
@@ -25,50 +32,62 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
     .count {
-      font-size: 40px;
+      font-size: 48px;
       font-weight: bold;
       margin: 15px 0;
     }
     button {
       background: #ff4d4d;
       border: none;
-      padding: 8px 15px;
-      font-size: 14px;
+      padding: 10px 20px;
+      font-size: 16px;
       color: white;
       cursor: pointer;
       border-radius: 5px;
-      margin: 5px;
+      margin: 5px 10px 0 10px;
+      transition: background-color 0.3s ease;
     }
-    button:hover { background: #ff1a1a; }
-    .history {
+    button:hover {
+      background: #ff1a1a;
+    }
+    button.history {
       background: #4d79ff;
     }
-    .history:hover {
+    button.history:hover {
       background: #335eff;
     }
-    .history-container {
-      margin-top: 20px;
+    #historyContainer {
+      max-width: 600px;
+      margin: 20px auto 40px auto;
       background: #1a1a2e;
       padding: 15px;
       border-radius: 10px;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
+      display: none;
+      text-align: left;
+    }
+    #historyContainer h2 {
+      margin-top: 0;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       color: white;
+      font-size: 14px;
     }
     th, td {
-      padding: 5px;
+      padding: 6px 10px;
       border-bottom: 1px solid #555;
+    }
+    th {
+      background: #3a3a60;
     }
   </style>
 </head>
 <body>
   <h1>Dashboard TPS IoT</h1>
+
   <div class="container">
+    <!-- Each card for TPS bins -->
     <div class="card" id="bin1">
       <h2>TPS 1</h2>
       <div class="count" id="count1">--</div>
@@ -101,14 +120,11 @@
     </div>
   </div>
 
-  <div id="historyContainer" class="history-container" style="display:none;">
+  <div id="historyContainer">
     <h2>History for <span id="historyTitle"></span></h2>
     <table>
       <thead>
-        <tr>
-          <th>Date</th>
-          <th>Count</th>
-        </tr>
+        <tr><th>Date</th><th>Count</th></tr>
       </thead>
       <tbody id="historyTable"></tbody>
     </table>
@@ -116,7 +132,7 @@
 
   <script>
     const API_URL = "https://tps-1.iffatadibamusaffa.workers.dev/";
-    const SHEET_API = "https://script.google.com/macros/s/AKfycbwQgdrKZGYozrcXNJTbIKTJ1gufmGuBfIrUFr9RskqKdi-Z5Isv-8eDW_6x6tlN2PNT/exec"; // Your Google Apps Script Web App URL
+    const SHEET_API = "https://script.google.com/macros/s/AKfycbwQgdrKZGYozrcXNJTbIKTJ1gufmGuBfIrUFr9RskqKdi-Z5Isv-8eDW_6x6tlN2PNT/exec";
 
     const bins = [
       { id: 1, vpin: "V1" },
@@ -129,13 +145,9 @@
     async function fetchCounts() {
       for (let bin of bins) {
         try {
-          let res = await fetch(`${API_URL}/?action=getCount&vpin=${bin.vpin}`);
-    
-          if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-          }
-    
-          let data = await res.text();
+          const response = await fetch(`${API_URL}/?action=getCount&vpin=${bin.vpin}`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.text();
           document.getElementById(`count${bin.id}`).innerText = data || "0";
         } catch (err) {
           console.error(`Error fetching bin ${bin.id}:`, err);
@@ -143,52 +155,61 @@
         }
       }
     }
-    
 
     async function resetCounter(vpin) {
-      const entered = prompt("Enter admin password:");
-      if (!entered) return;
+      const password = prompt("Enter admin password:");
+      if (!password) return;
       try {
-        let res = await fetch(`${API_URL}/?action=resetCount&vpin=${vpin}&key=${encodeURIComponent(entered)}`);
-        if (res.status === 401) {
+        const response = await fetch(`${API_URL}/?action=resetCount&vpin=${vpin}&key=${encodeURIComponent(password)}`);
+        if (response.status === 401) {
           alert("Wrong password!");
-        } else if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+        } else if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
         } else {
           alert("Counter reset!");
           fetchCounts();
         }
       } catch (err) {
         console.error("Reset error:", err);
+        alert("Reset failed.");
       }
     }
 
     async function showHistory(binId) {
       document.getElementById("historyContainer").style.display = "block";
       document.getElementById("historyTitle").innerText = `TPS ${binId}`;
-      let table = document.getElementById("historyTable");
-      table.innerHTML = "";
+      const tableBody = document.getElementById("historyTable");
+      tableBody.innerHTML = "";  // Clear previous data
 
       try {
-        let res = await fetch(`${SHEET_API}?bin=${binId}`);
-        let data = await res.json();
+        const response = await fetch(`${SHEET_API}?bin=${binId}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        if (data.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="2">No history available.</td></tr>`;
+          return;
+        }
 
         data.forEach(row => {
-          let tr = document.createElement("tr");
+          // Expecting row.date and row.count fields from your Apps Script JSON
           let date = new Date(row.date);
-          let formattedDate = date.toISOString().split("T")[0]; // YYYY-MM-DD
-          tr.innerHTML = `<td>${formattedDate}</td><td>${row.count}</td>`;
-          table.appendChild(tr);
+          let formattedDate = date.toISOString().split('T')[0];
+          let count = row.count || 0;
+
+          let tr = document.createElement("tr");
+          tr.innerHTML = `<td>${formattedDate}</td><td>${count}</td>`;
+          tableBody.appendChild(tr);
         });
       } catch (err) {
         console.error("History fetch error:", err);
+        tableBody.innerHTML = `<tr><td colspan="2">Error loading history.</td></tr>`;
       }
     }
 
-    setInterval(fetchCounts, 3000);
+    // Initial fetch and refresh every 5 seconds
     fetchCounts();
+    setInterval(fetchCounts, 5000);
   </script>
 </body>
 </html>
-
-
