@@ -16,7 +16,6 @@
     <h1>Reverse Vending Machine</h1>
     <p>Bottle Count:</p>
     <div class="count" id="bottleCount">--</div>
-
     <button onclick="resetCounter()">Reset Counter</button>
   </div>
 
@@ -26,10 +25,12 @@
     async function fetchCount() {
       try {
         let res = await fetch(`${API_URL}/?action=getCount`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         let data = await res.text();
         document.getElementById("bottleCount").innerText = data || "0";
-      } catch (e) {
-        console.error("Fetch error", e);
+      } catch (err) {
+        console.error("Fetch count error:", err);
+        document.getElementById("bottleCount").innerText = "Error";
       }
     }
 
@@ -40,16 +41,17 @@
         let res = await fetch(`${API_URL}/?action=resetCount&key=${encodeURIComponent(entered)}`);
         if (res.status === 401) {
           alert("Wrong password!");
+        } else if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         } else {
           alert("Counter reset!");
           fetchCount();
         }
-      } catch (e) {
-        console.error("Reset error", e);
+      } catch (err) {
+        console.error("Reset error:", err);
       }
     }
 
-    // Auto refresh count every 2 seconds
     setInterval(fetchCount, 2000);
     fetchCount();
   </script>
