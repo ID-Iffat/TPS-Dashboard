@@ -73,6 +73,7 @@
   async function fetchAllCounts() {
     bins.forEach(async (bin, i) => {
       try {
+        // Adjust your backend to accept vpin parameter and return that bin's count
         const res = await fetch(`${API_URL}/?action=getCount&vpin=${bin.countPin}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const count = await res.text();
@@ -104,6 +105,17 @@
     }
   }
 
+  // Date formatter to show only YYYY-MM-DD
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr; // fallback if invalid date
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
   // Cache history data
   let cachedHistory = null;
   async function fetchFullHistory() {
@@ -126,21 +138,17 @@
       document.getElementById("history").innerText = "Failed to load history";
       return;
     }
+
+    // Debug keys - open browser console to verify column names
+    console.log("Keys in first data row:", Object.keys(data[0]));
+
     let html = `<h2>History for ${binColumn}</h2>`;
     html += `<table><thead><tr><th>Tanggal</th><th>${binColumn}</th></tr></thead><tbody>`;
+    
     data.forEach(row => {
-      // Convert ISO date string to YYYY-MM-DD format
-      function formatDate(isoString) {
-        if (!isoString) return "";
-        const d = new Date(isoString);
-        if (isNaN(d)) return isoString; // fallback if not parseable
-        // Format as YYYY-MM-DD
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
+      html += `<tr><td>${formatDate(row["Tanggal"])}</td><td>${row[binColumn] !== undefined ? row[binColumn] : 0}</td></tr>`;
     });
+    
     html += `</tbody></table>`;
     document.getElementById("history").innerHTML = html;
   }
@@ -152,4 +160,3 @@
 </script>
 </body>
 </html>
-
