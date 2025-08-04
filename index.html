@@ -4,72 +4,54 @@
   <meta charset="UTF-8">
   <title>RVM Dashboard</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #1e1e2f;
-      color: white;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      margin-top: 50px;
-    }
-    .card {
-      background: #2a2a40;
-      padding: 20px;
-      border-radius: 10px;
-      display: inline-block;
-      min-width: 300px;
-    }
-    .count {
-      font-size: 60px;
-      font-weight: bold;
-      margin: 20px 0;
-    }
-    button {
-      background: #ff4d4d;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 18px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #ff1a1a;
-    }
+    body { font-family: Arial; background: #1e1e2f; color: white; text-align: center; }
+    .card { background: #2a2a40; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 50px; }
+    .count { font-size: 60px; font-weight: bold; margin: 20px 0; }
+    button { background: #ff4d4d; border: none; padding: 10px 20px; font-size: 18px; color: white; cursor: pointer; border-radius: 5px; }
+    button:hover { background: #ff1a1a; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <h1>Reverse Vending Machine</h1>
-      <p>Bottle Count:</p>
-      <div class="count" id="bottleCount">--</div>
-      <button onclick="resetCounter()">Reset Counter</button>
-    </div>
+  <div class="card">
+    <h1>Reverse Vending Machine</h1>
+    <p>Bottle Count:</p>
+    <div class="count" id="bottleCount">--</div>
+
+    <button onclick="resetCounter()">Reset Counter</button>
   </div>
 
   <script>
     const API_URL = "https://tps-1.iffatadibamusaffa.workers.dev/";
 
-async function fetchCount() {
-  let response = await fetch(`${API_URL}/?action=getCount`);
-  let data = await response.text();
-  document.getElementById("bottleCount").innerText = data;
-}
+    async function fetchCount() {
+      try {
+        let res = await fetch(`${API_URL}/?action=getCount`);
+        let data = await res.text();
+        document.getElementById("bottleCount").innerText = data || "0";
+      } catch (e) {
+        console.error("Fetch error", e);
+      }
+    }
 
-async function resetCounter() {
-  await fetch(`${API_URL}/?action=resetCount`);
-  fetchCount();
-}
+    async function resetCounter() {
+      const entered = prompt("Enter admin password:");
+      if (!entered) return;
+      try {
+        let res = await fetch(`${API_URL}/?action=resetCount&key=${encodeURIComponent(entered)}`);
+        if (res.status === 401) {
+          alert("Wrong password!");
+        } else {
+          alert("Counter reset!");
+          fetchCount();
+        }
+      } catch (e) {
+        console.error("Reset error", e);
+      }
+    }
 
-    // Refresh count every 2 seconds
+    // Auto refresh count every 2 seconds
     setInterval(fetchCount, 2000);
     fetchCount();
   </script>
 </body>
 </html>
-
-
