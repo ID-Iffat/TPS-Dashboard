@@ -17,19 +17,19 @@
     }
     .container {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
-      margin: 30px auto;
-      max-width: 1200px;
-      padding: 0 10px;
+      justify-content: center;  /* centers the row horizontally */
+      gap: 20px;                /* space between bins */
+      flex-wrap: nowrap;        /* force one row, no wrap */
     }
+    
     .card {
+      flex: 1 1 150px;          /* allow cards to shrink/grow, with base width */
+      max-width: 180px;         /* optional max width for each card */
       background: #2a2a40;
       padding: 20px;
       border-radius: 10px;
-      width: 220px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      color: white;
+      text-align: center;
     }
     .count {
       font-size: 48px;
@@ -211,5 +211,6 @@
   </script>
 </body>
 </html>
+
 
 
