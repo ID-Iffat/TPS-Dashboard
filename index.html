@@ -17,18 +17,19 @@
     }
     .container {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;      /* prevent wrapping */
       justify-content: center;
-      gap: 20px;
+      gap: 15px;
       margin: 30px auto;
-      max-width: 1200px;
+      max-width: 1150px;      /* ~ (220 * 5) + (15 * 4) */
       padding: 0 10px;
+      overflow-x: auto;       /* allow horizontal scroll if needed */
     }
     .card {
+      flex: 0 0 220px;        /* fixed width */
       background: #2a2a40;
       padding: 20px;
       border-radius: 10px;
-      width: 220px;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
     .count {
@@ -211,3 +212,4 @@
   </script>
 </body>
 </html>
+
