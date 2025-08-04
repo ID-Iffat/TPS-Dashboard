@@ -166,7 +166,7 @@
           throw new Error(`HTTP ${response.status}`);
         } else {
           alert("Counter reset!");
-          fetchCounts();
+          setTimeout(fetchCounts, 1500);
         }
       } catch (err) {
         console.error("Reset error:", err);
@@ -221,6 +221,7 @@
   </script>
 </body>
 </html>
+
 
 
 
