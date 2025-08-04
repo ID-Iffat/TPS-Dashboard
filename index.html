@@ -129,7 +129,17 @@
     let html = `<h2>History for ${binColumn}</h2>`;
     html += `<table><thead><tr><th>Tanggal</th><th>${binColumn}</th></tr></thead><tbody>`;
     data.forEach(row => {
-      html += `<tr><td>${row["Tanggal"] || ""}</td><td>${row[binColumn] || 0}</td></tr>`;
+      // Convert ISO date string to YYYY-MM-DD format
+      function formatDate(isoString) {
+        if (!isoString) return "";
+        const d = new Date(isoString);
+        if (isNaN(d)) return isoString; // fallback if not parseable
+        // Format as YYYY-MM-DD
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
     });
     html += `</tbody></table>`;
     document.getElementById("history").innerHTML = html;
@@ -142,3 +152,4 @@
 </script>
 </body>
 </html>
+
