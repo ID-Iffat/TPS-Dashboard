@@ -1,162 +1,186 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <title>RVM Dashboard - Multi TPS</title>
+  <meta charset="UTF-8">
+  <title>Dashboard TPS IoT</title>
   <style>
-    body { font-family: Arial; background: #1e1e2f; color: white; text-align: center; margin: 0; padding: 0; }
-    h1 { margin-top: 20px; }
-    .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin: 20px; }
-    .card {
-      background: #2a2a40; padding: 20px; border-radius: 10px;
-      width: 200px; box-sizing: border-box;
-      display: flex; flex-direction: column; align-items: center;
+    body {
+      font-family: Arial;
+      background: #1e1e2f;
+      color: white;
+      text-align: center;
     }
-    .count { font-size: 48px; font-weight: bold; margin: 10px 0 20px 0; }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .card {
+      background: #2a2a40;
+      padding: 20px;
+      border-radius: 10px;
+      width: 220px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .count {
+      font-size: 40px;
+      font-weight: bold;
+      margin: 15px 0;
+    }
     button {
-      background: #ff4d4d; border: none; padding: 10px 15px; font-size: 16px;
-      color: white; cursor: pointer; border-radius: 5px; margin: 5px 0;
-      width: 100%;
+      background: #ff4d4d;
+      border: none;
+      padding: 8px 15px;
+      font-size: 14px;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 5px;
     }
     button:hover { background: #ff1a1a; }
-    #history {
-      margin: 30px auto; max-width: 800px; background: #2a2a40; padding: 20px; border-radius: 10px;
-      color: white; text-align: left;
-      overflow-x: auto;
+    .history {
+      background: #4d79ff;
+    }
+    .history:hover {
+      background: #335eff;
+    }
+    .history-container {
+      margin-top: 20px;
+      background: #1a1a2e;
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
     }
     table {
-      border-collapse: collapse; width: 100%;
+      width: 100%;
+      border-collapse: collapse;
+      color: white;
     }
     th, td {
-      border: 1px solid #444; padding: 8px; text-align: center;
+      padding: 5px;
+      border-bottom: 1px solid #555;
     }
-    th { background: #3a3a58; }
   </style>
 </head>
 <body>
-  <h1>TPS Bottle Counter Dashboard</h1>
-  <div class="container" id="binsContainer">
-    <!-- Bin cards inserted by JS -->
+  <h1>RVM Dashboard</h1>
+  <div class="container">
+    <div class="card" id="bin1">
+      <h2>TPS 1</h2>
+      <div class="count" id="count1">--</div>
+      <button onclick="resetCounter('V1')">Reset</button>
+      <button class="history" onclick="showHistory(1)">History</button>
+    </div>
+    <div class="card" id="bin2">
+      <h2>TPS 2</h2>
+      <div class="count" id="count2">--</div>
+      <button onclick="resetCounter('V3')">Reset</button>
+      <button class="history" onclick="showHistory(2)">History</button>
+    </div>
+    <div class="card" id="bin3">
+      <h2>TPS 3</h2>
+      <div class="count" id="count3">--</div>
+      <button onclick="resetCounter('V5')">Reset</button>
+      <button class="history" onclick="showHistory(3)">History</button>
+    </div>
+    <div class="card" id="bin4">
+      <h2>TPS 4</h2>
+      <div class="count" id="count4">--</div>
+      <button onclick="resetCounter('V7')">Reset</button>
+      <button class="history" onclick="showHistory(4)">History</button>
+    </div>
+    <div class="card" id="bin5">
+      <h2>TPS 5</h2>
+      <div class="count" id="count5">--</div>
+      <button onclick="resetCounter('V9')">Reset</button>
+      <button class="history" onclick="showHistory(5)">History</button>
+    </div>
   </div>
 
-  <div id="history">Select a bin's History to view here.</div>
+  <div id="historyContainer" class="history-container" style="display:none;">
+    <h2>History for <span id="historyTitle"></span></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Count</th>
+        </tr>
+      </thead>
+      <tbody id="historyTable"></tbody>
+    </table>
+  </div>
 
-<script>
-  const API_URL = "https://tps-1.iffatadibamusaffa.workers.dev/"; // Your API endpoint for current counts
-  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwQgdrKZGYozrcXNJTbIKTJ1gufmGuBfIrUFr9RskqKdi-Z5Isv-8eDW_6x6tlN2PNT/exec"; // Your Apps Script Web App URL
+  <script>
+    const API_URL = "https://tps-1.iffatadibamusaffa.workers.dev/";
+    const SHEET_API = "https://script.google.com/macros/s/AKfycbwQgdrKZGYozrcXNJTbIKTJ1gufmGuBfIrUFr9RskqKdi-Z5Isv-8eDW_6x6tlN2PNT/exec"; // Your Google Apps Script Web App URL
 
-  // Define bins info: name, count vpin, reset vpin, sheet column name
-  const bins = [
-    { name: "TPS 1", countPin: "V1", resetPin: "V2", colHeader: "Jumlah Sampah TPS 1" },
-    { name: "TPS 2", countPin: "V3", resetPin: "V4", colHeader: "Jumlah Sampah TPS 2" },
-    { name: "TPS 3", countPin: "V5", resetPin: "V6", colHeader: "Jumlah Sampah TPS 3" },
-    { name: "TPS 4", countPin: "V7", resetPin: "V8", colHeader: "Jumlah Sampah TPS 4" },
-    { name: "TPS 5", countPin: "V9", resetPin: "V10", colHeader: "Jumlah Sampah TPS 5" }
-  ];
+    const bins = [
+      { id: 1, vpin: "V1" },
+      { id: 2, vpin: "V3" },
+      { id: 3, vpin: "V5" },
+      { id: 4, vpin: "V7" },
+      { id: 5, vpin: "V9" }
+    ];
 
-  // Create cards for each bin
-  const container = document.getElementById("binsContainer");
-  bins.forEach((bin, i) => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.id = `binCard${i}`;
-    card.innerHTML = `
-      <h2>${bin.name}</h2>
-      <div class="count" id="count${i}">--</div>
-      <button onclick="resetCounter('${bin.resetPin}', ${i})">Reset ${bin.name}</button>
-      <button onclick="showHistory('${bin.colHeader}')">History ${bin.name}</button>
-    `;
-    container.appendChild(card);
-  });
+    async function fetchCounts() {
+      for (let bin of bins) {
+        try {
+          let res = await fetch(`${API_URL}/?action=getCount&vpin=${bin.vpin}`);
+          let data = await res.text();
+          document.getElementById(`count${bin.id}`).innerText = data || "0";
+        } catch (err) {
+          console.error(`Error fetching bin ${bin.id}:`, err);
+          document.getElementById(`count${bin.id}`).innerText = "Err";
+        }
+      }
+    }
 
-  // Fetch current counts for all bins
-  async function fetchAllCounts() {
-    bins.forEach(async (bin, i) => {
+    async function resetCounter(vpin) {
+      const entered = prompt("Enter admin password:");
+      if (!entered) return;
       try {
-        // Adjust your backend to accept vpin parameter and return that bin's count
-        const res = await fetch(`${API_URL}/?action=getCount&vpin=${bin.countPin}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const count = await res.text();
-        document.getElementById(`count${i}`).innerText = count || "0";
+        let res = await fetch(`${API_URL}/?action=resetCount&vpin=${vpin}&key=${encodeURIComponent(entered)}`);
+        if (res.status === 401) {
+          alert("Wrong password!");
+        } else if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        } else {
+          alert("Counter reset!");
+          fetchCounts();
+        }
       } catch (err) {
-        console.error(`Fetch error for ${bin.name}:`, err);
-        document.getElementById(`count${i}`).innerText = "Error";
+        console.error("Reset error:", err);
       }
-    });
-  }
+    }
 
-  // Reset counter for a specific bin
-  async function resetCounter(resetPin, index) {
-    const password = prompt("Enter admin password:");
-    if (!password) return;
-    try {
-      const res = await fetch(`${API_URL}/?action=resetCount&key=${encodeURIComponent(password)}&vpin=${resetPin}`);
-      if (res.status === 401) {
-        alert("Wrong password!");
-      } else if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      } else {
-        alert(`Counter reset for ${bins[index].name}!`);
-        fetchAllCounts();
+    async function showHistory(binId) {
+      document.getElementById("historyContainer").style.display = "block";
+      document.getElementById("historyTitle").innerText = `TPS ${binId}`;
+      let table = document.getElementById("historyTable");
+      table.innerHTML = "";
+
+      try {
+        let res = await fetch(`${SHEET_API}?bin=${binId}`);
+        let data = await res.json();
+
+        data.forEach(row => {
+          let tr = document.createElement("tr");
+          let date = new Date(row.date);
+          let formattedDate = date.toISOString().split("T")[0]; // YYYY-MM-DD
+          tr.innerHTML = `<td>${formattedDate}</td><td>${row.count}</td>`;
+          table.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("History fetch error:", err);
       }
-    } catch (err) {
-      console.error("Reset error:", err);
-      alert("Failed to reset counter.");
-    }
-  }
-
-  // Date formatter to show only YYYY-MM-DD
-  function formatDate(dateStr) {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr; // fallback if invalid date
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
-  // Cache history data
-  let cachedHistory = null;
-  async function fetchFullHistory() {
-    if (cachedHistory) return cachedHistory;
-    try {
-      const res = await fetch(SHEET_API_URL);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      cachedHistory = await res.json();
-      return cachedHistory;
-    } catch (err) {
-      console.error("Failed to fetch history:", err);
-      return null;
-    }
-  }
-
-  // Show history table for a bin
-  async function showHistory(binColumn) {
-    const data = await fetchFullHistory();
-    if (!data) {
-      document.getElementById("history").innerText = "Failed to load history";
-      return;
     }
 
-    // Debug keys - open browser console to verify column names
-    console.log("Keys in first data row:", Object.keys(data[0]));
-
-    let html = `<h2>History for ${binColumn}</h2>`;
-    html += `<table><thead><tr><th>Tanggal</th><th>${binColumn}</th></tr></thead><tbody>`;
-    
-    data.forEach(row => {
-      html += `<tr><td>${formatDate(row["Tanggal"])}</td><td>${row[binColumn] !== undefined ? row[binColumn] : 0}</td></tr>`;
-    });
-    
-    html += `</tbody></table>`;
-    document.getElementById("history").innerHTML = html;
-  }
-
-  // Update counts every 3 seconds
-  setInterval(fetchAllCounts, 3000);
-  fetchAllCounts();
-
-</script>
+    setInterval(fetchCounts, 3000);
+    fetchCounts();
+  </script>
 </body>
 </html>
