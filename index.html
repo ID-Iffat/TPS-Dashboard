@@ -122,13 +122,20 @@
 
   <div id="historyContainer">
     <h2>History for <span id="historyTitle"></span></h2>
-    <canvas id="historyChart" style="margin-top:20px;"></canvas>
+    <div style="display:flex; justify-content:center; gap:20px; flex-wrap:wrap;">
+      <canvas id="dailyChart" style="max-width:400px;"></canvas>
+      <canvas id="weeklyChart" style="max-width:300px;"></canvas>
+    </div>
     <table>
       <thead>
         <tr><th>Date</th><th>Count</th></tr>
       </thead>
       <tbody id="historyTable"></tbody>
     </table>
+    <div style="margin-top:10px;">
+      <button id="prevWeekBtn">⬅ Previous</button>
+      <button id="nextWeekBtn">Next ➡</button>
+    </div>
   </div>
 
   <script>
@@ -176,7 +183,11 @@
       }
     }
 
-    let historyChartInstance = null; // store chart instance
+    let historyData = [];
+    let weekIndex = 0; // 0 = most recent week
+    let dailyChartInstance = null;
+    let weeklyChartInstance = null;
+
     async function showHistory(binId) {
       document.getElementById("historyContainer").style.display = "block";
       document.getElementById("historyTitle").innerText = `TPS ${binId}`;
@@ -186,63 +197,103 @@
       try {
         const response = await fetch(`${SHEET_API}?bin=${binId}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        historyData = await response.json();
 
-        if (!Array.isArray(data) || data.length === 0) {
-          if (historyChartInstance) historyChartInstance.destroy();
+        if (!Array.isArray(historyData) || historyData.length === 0) {
           tableBody.innerHTML = `<tr><td colspan="2">No history available.</td></tr>`;
           return;
         }
 
-        const labels = [];
-        const counts = [];
+        // Ensure newest first, then reverse if needed
+        historyData = historyData.reverse();
 
-        data.forEach(row => {
-          let formattedDate;
-          if (typeof row.date === "string") {
-            formattedDate = row.date.includes("T") ? row.date.split("T")[0] : row.date;
-          } else {
-            let dateObj = new Date((row.date - 25569) * 86400 * 1000);
-            formattedDate = dateObj.toISOString().split("T")[0];
+        weekIndex = 0;
+        renderWeek();
+
+        // Setup navigation
+        document.getElementById("prevWeekBtn").onclick = () => {
+          if ((weekIndex + 1) * 7 < historyData.length) {
+            weekIndex++;
+            renderWeek();
           }
-          labels.push(formattedDate);
-          counts.push(row.count || 0);
-        });
-
-        // --- Build histogram ---
-        const ctx = document.getElementById("historyChart").getContext("2d");
-        if (historyChartInstance) historyChartInstance.destroy();
-        historyChartInstance = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Count',
-              data: counts,
-              backgroundColor: 'rgba(54, 162, 235, 0.6)',
-              borderColor: 'rgba(54, 162, 235, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              y: { beginAtZero: true, ticks: { stepSize: 1 } }
-            }
+        };
+        document.getElementById("nextWeekBtn").onclick = () => {
+          if (weekIndex > 0) {
+            weekIndex--;
+            renderWeek();
           }
-        });
-
-        // --- Fill table ---
-        data.forEach((row, i) => {
-          let tr = document.createElement("tr");
-          tr.innerHTML = `<td>${labels[i]}</td><td>${counts[i]}</td>`;
-          tableBody.appendChild(tr);
-        });
+        };
 
       } catch (err) {
         console.error("History fetch error:", err);
         tableBody.innerHTML = `<tr><td colspan="2">Error loading history.</td></tr>`;
       }
+    }
+
+    function renderWeek() {
+      const start = weekIndex * 7;
+      const weekData = historyData.slice(start, start + 7);
+
+      const labels = weekData.map(row => {
+        if (typeof row.date === "string") {
+          return row.date.includes("T") ? row.date.split("T")[0] : row.date;
+        } else {
+          let dateObj = new Date((row.date - 25569) * 86400 * 1000);
+          return dateObj.toISOString().split("T")[0];
+        }
+      });
+
+      const values = weekData.map(row => Number(row.count) || 0);
+      const weeklyTotal = values.reduce((sum, v) => sum + v, 0);
+
+      // Destroy old charts before creating new ones
+      if (dailyChartInstance) dailyChartInstance.destroy();
+      if (weeklyChartInstance) weeklyChartInstance.destroy();
+
+      // Daily chart
+      dailyChartInstance = new Chart(document.getElementById("dailyChart"), {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Daily Trash Count",
+            data: values,
+            backgroundColor: "#4d79ff"
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+
+      // Weekly total chart
+      weeklyChartInstance = new Chart(document.getElementById("weeklyChart"), {
+        type: "bar",
+        data: {
+          labels: ["Week Total"],
+          datasets: [{
+            label: "Total Trash Count",
+            data: [weeklyTotal],
+            backgroundColor: "#ff4d4d"
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+
+      // Fill the table
+      const tableBody = document.getElementById("historyTable");
+      tableBody.innerHTML = "";
+      weekData.forEach(row => {
+        let formattedDate;
+        if (typeof row.date === "string") {
+          formattedDate = row.date.includes("T") ? row.date.split("T")[0] : row.date;
+        } else {
+          let dateObj = new Date((row.date - 25569) * 86400 * 1000);
+          formattedDate = dateObj.toISOString().split("T")[0];
+        }
+        let count = row.count || 0;
+        let tr = document.createElement("tr");
+        tr.innerHTML = `<td>${formattedDate}</td><td>${count}</td>`;
+        tableBody.appendChild(tr);
+      });
     }
 
     // Initial fetch and refresh every 5 seconds
