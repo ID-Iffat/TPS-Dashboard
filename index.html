@@ -99,7 +99,7 @@
 </head>
 <body>
   <h1>Dashboard TPS IoT</h1>
-
+  <button onclick="requestNotificationPermission()">Enable Notifications</button>
   <div class="container">
     <div class="card" id="bin1">
       <h2>TPS 1</h2>
@@ -167,6 +167,26 @@
       { id: 5, readVpin: "V9", resetVpin: "V10" }
     ];
 
+    const lastNotifiedLevels = {}; // Tracks last level notified per bin
+    function requestNotificationPermission() {
+      if ("Notification" in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            alert("Notifications enabled!");
+          } else {
+            alert("Notifications not granted.");
+          }
+        });
+      }
+    }
+    function sendNotification(title, body) {
+      if (Notification.permission === "granted") {
+        new Notification(title, {
+          body: body,
+          icon: "https://png.pngtree.com/png-vector/20190319/ourlarge/pngtree-vector-waste-icon-png-image_845906.jpg"
+        });
+      }
+    }
     async function fetchCounts() {
       for (let bin of bins) {
         try {
@@ -174,6 +194,14 @@
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const data = await response.text();
           document.getElementById(`count${bin.id}`).innerText = data || "0";
+          // Notification logic
+          const count = parseInt(data);
+          const level = Math.floor(count / 6); // 0–6
+          const binKey = `bin${bin.id}`;
+          if (!isNaN(count) && level > 0 && level <= 6 && lastNotifiedLevels[binKey] !== level) {
+            sendNotification(`TPS ${bin.id} - ${level}/6 Full`, `TPS ${bin.id} sudah memenuhi lebih dari ${level * 50} sampah.`);
+            lastNotifiedLevels[binKey] = level;
+          }
         } catch (err) {
           console.error(`Error fetching bin ${bin.id}:`, err);
           document.getElementById(`count${bin.id}`).innerText = "Err";
