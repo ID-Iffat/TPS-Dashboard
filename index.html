@@ -58,13 +58,26 @@
       background: #335eff;
     }
     #historyContainer {
-      max-width: 600px;
+      max-width: 1000px;   /* This forces it narrow */
       margin: 20px auto 40px auto;
       background: #1a1a2e;
       padding: 15px;
       border-radius: 10px;
       display: none;
       text-align: left;
+    }
+    .charts-container {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap; /* allows stacking if screen too small */
+    }
+    .chart-card {
+      background: #2a2a40;
+      padding: 15px;
+      border-radius: 10px;
+      width: 400px;
+      height: 300px;
     }
     #historyContainer h2 {
       margin-top: 0;
@@ -122,13 +135,17 @@
 
   <div id="historyContainer">
     <h2>History for <span id="historyTitle"></span></h2>
-    <div style="display:flex; justify-content:center; gap:20px; flex-wrap:wrap;">
-      <canvas id="dailyChart" style="max-width:400px;"></canvas>
-      <canvas id="weeklyChart" style="max-width:300px;"></canvas>
+    <div class="charts-container">
+      <div class="chart-card">
+        <canvas id="dailyChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <canvas id="weeklyChart"></canvas>
+      </div>
     </div>
     <table>
       <thead>
-        <tr><th>Date</th><th>Count</th></tr>
+        <tr><th>Tanggal</th><th>Jumlah Sampah</th></tr>
       </thead>
       <tbody id="historyTable"></tbody>
     </table>
@@ -268,7 +285,7 @@
       weeklyChartInstance = new Chart(document.getElementById("weeklyChart"), {
         type: "bar",
         data: {
-          labels: ["Week Total"],
+          labels: ["Total dalam seminggu"],
           datasets: [{
             label: "Total Trash Count",
             data: [weeklyTotal],
