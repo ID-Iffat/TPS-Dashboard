@@ -90,31 +90,31 @@
     <div class="card" id="bin1">
       <h2>TPS 1</h2>
       <div class="count" id="count1">--</div>
-      <button onclick="resetCounter('V2')">Reset</button>
+      <button onclick="resetCounter(bins[0].resetVpin)">Reset</button>
       <button class="history" onclick="showHistory(1)">History</button>
     </div>
     <div class="card" id="bin2">
       <h2>TPS 2</h2>
       <div class="count" id="count2">--</div>
-      <button onclick="resetCounter('V4')">Reset</button>
+      <button onclick="resetCounter('V3')">Reset</button>
       <button class="history" onclick="showHistory(2)">History</button>
     </div>
     <div class="card" id="bin3">
       <h2>TPS 3</h2>
       <div class="count" id="count3">--</div>
-      <button onclick="resetCounter('V6')">Reset</button>
+      <button onclick="resetCounter('V5')">Reset</button>
       <button class="history" onclick="showHistory(3)">History</button>
     </div>
     <div class="card" id="bin4">
       <h2>TPS 4</h2>
       <div class="count" id="count4">--</div>
-      <button onclick="resetCounter('V8')">Reset</button>
+      <button onclick="resetCounter('V7')">Reset</button>
       <button class="history" onclick="showHistory(4)">History</button>
     </div>
     <div class="card" id="bin5">
       <h2>TPS 5</h2>
       <div class="count" id="count5">--</div>
-      <button onclick="resetCounter('V10')">Reset</button>
+      <button onclick="resetCounter('V9')">Reset</button>
       <button class="history" onclick="showHistory(5)">History</button>
     </div>
   </div>
@@ -134,17 +134,17 @@
     const SHEET_API = "https://script.google.com/macros/s/AKfycbxB2LOunFSPXn282LsbmnVKK6iQiMEbH83kcqDp_x4bA3ykeOnUd1mMC8ureJyFnVsu/exec";
 
     const bins = [
-      { id: 1, vpin: "V1" },
-      { id: 2, vpin: "V3" },
-      { id: 3, vpin: "V5" },
-      { id: 4, vpin: "V7" },
-      { id: 5, vpin: "V9" }
+      { id: 1, readVpin: "V1", resetVpin: "V2" },
+      { id: 2, readVpin: "V3", resetVpin: "V4" },
+      { id: 3, readVpin: "V5", resetVpin: "V6" },
+      { id: 4, readVpin: "V7", resetVpin: "V8" },
+      { id: 5, readVpin: "V9", resetVpin: "V10" }
     ];
 
     async function fetchCounts() {
       for (let bin of bins) {
         try {
-          const response = await fetch(`${API_URL}/?action=getCount&vpin=${bin.vpin}`);
+          const response = await fetch(`${API_URL}/?action=getCount&vpin=${bin.readVpin}`);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const data = await response.text();
           document.getElementById(`count${bin.id}`).innerText = data || "0";
@@ -221,10 +221,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
