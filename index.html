@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Dashboard TPS IoT</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -121,6 +122,7 @@
 
   <div id="historyContainer">
     <h2>History for <span id="historyTitle"></span></h2>
+    <canvas id="historyChart" style="margin-top:20px;"></canvas>
     <table>
       <thead>
         <tr><th>Date</th><th>Count</th></tr>
@@ -174,41 +176,69 @@
       }
     }
 
+    let historyChartInstance = null; // store chart instance
     async function showHistory(binId) {
       document.getElementById("historyContainer").style.display = "block";
       document.getElementById("historyTitle").innerText = `TPS ${binId}`;
       const tableBody = document.getElementById("historyTable");
       tableBody.innerHTML = "";
-    
+
       try {
-        // Call Google Apps Script directly
         const response = await fetch(`${SHEET_API}?bin=${binId}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-    
+
         if (!Array.isArray(data) || data.length === 0) {
+          if (historyChartInstance) historyChartInstance.destroy();
           tableBody.innerHTML = `<tr><td colspan="2">No history available.</td></tr>`;
           return;
         }
-    
+
+        const labels = [];
+        const counts = [];
+
         data.forEach(row => {
-          // Expecting { date: "...", count: ... }
           let formattedDate;
           if (typeof row.date === "string") {
-            // Already in text form
             formattedDate = row.date.includes("T") ? row.date.split("T")[0] : row.date;
           } else {
-            // If it's a serial number from Sheets
-            let dateObj = new Date((row.date - 25569) * 86400 * 1000); 
+            let dateObj = new Date((row.date - 25569) * 86400 * 1000);
             formattedDate = dateObj.toISOString().split("T")[0];
           }
-    
-          let count = row.count || 0;
-    
+          labels.push(formattedDate);
+          counts.push(row.count || 0);
+        });
+
+        // --- Build histogram ---
+        const ctx = document.getElementById("historyChart").getContext("2d");
+        if (historyChartInstance) historyChartInstance.destroy();
+        historyChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Count',
+              data: counts,
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+          }
+        });
+
+        // --- Fill table ---
+        data.forEach((row, i) => {
           let tr = document.createElement("tr");
-          tr.innerHTML = `<td>${formattedDate}</td><td>${count}</td>`;
+          tr.innerHTML = `<td>${labels[i]}</td><td>${counts[i]}</td>`;
           tableBody.appendChild(tr);
         });
+
       } catch (err) {
         console.error("History fetch error:", err);
         tableBody.innerHTML = `<tr><td colspan="2">Error loading history.</td></tr>`;
