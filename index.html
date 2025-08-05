@@ -196,7 +196,7 @@
           document.getElementById(`count${bin.id}`).innerText = data || "0";
           // Notification logic
           const count = parseInt(data);
-          const level = Math.floor(count / 6); // 0–6
+          const level = Math.floor(count / 50); // 0–6
           const binKey = `bin${bin.id}`;
           if (!isNaN(count) && level > 0 && level <= 6 && lastNotifiedLevels[binKey] !== level) {
             sendNotification(`TPS ${bin.id} - ${level}/6 Full`, `TPS ${bin.id} sudah memenuhi lebih dari ${level * 50} sampah.`);
@@ -347,3 +347,4 @@
   </script>
 </body>
 </html>
+
